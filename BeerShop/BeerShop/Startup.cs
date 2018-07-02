@@ -50,6 +50,11 @@ namespace BeerShop
 
                 var atakChmielu = new Beer { StyleId = ipa.Id, BreweryId = pinta.Id, Name = "Atak chmielu", Stock = 4 };
                 context.Beers.Add(atakChmielu);
+                
+                var user1Cart = new Cart();
+                context.Carts.Add(user1Cart);
+                var user1 = new User { Name = "Jan", CartId = user1Cart.Id };
+                context.Users.Add(user1);
 
                 context.SaveChanges();
             }

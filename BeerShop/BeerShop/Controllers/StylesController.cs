@@ -74,9 +74,14 @@ namespace BeerShop.Controllers
                 return BadRequest(ModelState);
             }
 
-            if (id != styleItem.Id)
+            if (String.IsNullOrEmpty(styleItem.Name))
             {
                 return BadRequest();
+            }
+
+            if (id != styleItem.Id)
+            {
+                styleItem.Id = id;
             }
 
             _context.Entry(styleItem).State = EntityState.Modified;

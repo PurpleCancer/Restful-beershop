@@ -10,12 +10,12 @@ namespace BeerShop.Models
         public long Id { get; set; }
         public string Name { get; set; }
 
-        public long StyleId { get; set; }
+        public long? StyleId { get; set; }
         public Style Style { get; set; }
-        public long BreweryId { get; set; }
+        public long? BreweryId { get; set; }
         public Brewery Brewery { get; set; }
 
         public string Picture { get; set; }
-        public int Stock { get; set; }
+        public int? Stock { get; set; }
     }
 }

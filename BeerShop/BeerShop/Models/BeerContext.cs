@@ -18,5 +18,8 @@ namespace BeerShop.Models
         public DbSet<Brewery> Breweries { get; set; }
 
         public DbSet<Beer> Beers { get; set; }
+
+        public DbSet<User> Users { get; set; }
+        public DbSet<Cart> Carts { get; set; }
     }
 }

@@ -88,12 +88,63 @@ namespace BeerShop.Controllers
                 return BadRequest(ModelState);
             }
 
-            if (id != beer.Id)
+            if (String.IsNullOrEmpty(beer.Name)
+                || !beer.StyleId.HasValue
+                || !beer.BreweryId.HasValue
+                || !beer.Stock.HasValue)
             {
                 return BadRequest();
             }
 
+            if (id != beer.Id)
+            {
+                beer.Id = id;
+            }
+
             _context.Entry(beer).State = EntityState.Modified;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!BeerExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
+        }
+
+        // PATCH: api/Beers/5
+        [HttpPatch("{id}")]
+        public async Task<IActionResult> PatchBeer([FromRoute] long id, [FromBody] Beer beer)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            if (id != beer.Id)
+            {
+                beer.Id = id;
+            }
+
+            var _beer = _context.Beers.Find(id);
+
+            _beer.Name = !String.IsNullOrEmpty(beer.Name) ? beer.Name : _beer.Name;
+            _beer.StyleId = beer.StyleId ?? _beer.StyleId;
+            _beer.BreweryId = beer.BreweryId ?? _beer.BreweryId;
+            _beer.Picture = !String.IsNullOrEmpty(beer.Picture) ? beer.Picture : _beer.Picture;
+            _beer.Stock = beer.Stock ?? _beer.Stock;
+
+            _context.Entry(_beer).State = EntityState.Modified;
 
             try
             {
