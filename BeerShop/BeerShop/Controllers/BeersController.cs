@@ -138,6 +138,9 @@ namespace BeerShop.Controllers
 
             var _beer = _context.Beers.Find(id);
 
+            if (_beer == null)
+                return NotFound();
+
             _beer.Name = !String.IsNullOrEmpty(beer.Name) ? beer.Name : _beer.Name;
             _beer.StyleId = beer.StyleId ?? _beer.StyleId;
             _beer.BreweryId = beer.BreweryId ?? _beer.BreweryId;

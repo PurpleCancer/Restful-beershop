@@ -42,10 +42,10 @@ namespace BeerShop
             {
                 var context = serviceScope.ServiceProvider.GetService<BeerContext>();
                 
-                var ipa = new Style { Name = "IPA" };
+                var ipa = new Style { Name = "IPA", OptimalTemperature = 1.8 };
                 context.Styles.Add(ipa);
 
-                var pinta = new Brewery { Name = "Pinta" };
+                var pinta = new Brewery { Name = "Pinta", Country = "Poland" };
                 context.Breweries.Add(pinta);
 
                 var atakChmielu = new Beer { StyleId = ipa.Id, BreweryId = pinta.Id, Name = "Atak chmielu", Stock = 4 };
@@ -53,6 +53,8 @@ namespace BeerShop
                 
                 var user1Cart = new Cart();
                 context.Carts.Add(user1Cart);
+                var cartItem1 = new CartItem { CartId = user1Cart.Id, BeerId = atakChmielu.Id, Count = 2 };
+                context.CartItems.Add(cartItem1);
                 var user1 = new User { Name = "Jan", CartId = user1Cart.Id };
                 context.Users.Add(user1);
 

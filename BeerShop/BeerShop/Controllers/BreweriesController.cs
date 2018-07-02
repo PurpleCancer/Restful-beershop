@@ -31,6 +31,7 @@ namespace BeerShop.Controllers
             {
                 b.Id,
                 b.Name,
+                b.Country,
             });
 
             return Ok(Response);
@@ -58,6 +59,7 @@ namespace BeerShop.Controllers
             {
                 brewery.Id,
                 brewery.Name,
+                brewery.Country,
                 Beers = brewery.Beers.Select(b => b.Name),
             };
 
@@ -73,7 +75,8 @@ namespace BeerShop.Controllers
                 return BadRequest(ModelState);
             }
 
-            if (String.IsNullOrEmpty(brewery.Name))
+            if (String.IsNullOrEmpty(brewery.Name)
+                || String.IsNullOrEmpty(brewery.Country))
             {
                 return BadRequest();
             }
@@ -84,6 +87,44 @@ namespace BeerShop.Controllers
             }
 
             _context.Entry(brewery).State = EntityState.Modified;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!BreweryExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
+        }
+
+        // PATCH: api/Breweries/5
+        [HttpPatch("{id}")]
+        public async Task<IActionResult> PatchBrewery([FromRoute] long id, [FromBody] Brewery brewery)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var _brewery = _context.Breweries.Find(id);
+
+            if (_brewery == null)
+                return NotFound();
+
+            _brewery.Name = !String.IsNullOrEmpty(brewery.Name) ? brewery.Name : _brewery.Name;
+            _brewery.Country = !String.IsNullOrEmpty(brewery.Country) ? brewery.Country : _brewery.Country;
+
+            _context.Entry(_brewery).State = EntityState.Modified;
 
             try
             {
@@ -120,6 +161,7 @@ namespace BeerShop.Controllers
             {
                 brewery.Id,
                 brewery.Name,
+                brewery.Country,
             };
 
             return CreatedAtAction("GetBrewery", new { id = brewery.Id }, response);
@@ -147,6 +189,7 @@ namespace BeerShop.Controllers
             {
                 brewery.Id,
                 brewery.Name,
+                brewery.Country,
             };
 
             return Ok(response);

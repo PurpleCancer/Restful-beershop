@@ -46,12 +46,51 @@ namespace BeerShop.Controllers
 
             var user = await _context.Users.FindAsync(id);
 
+            var response = new
+            {
+                user.Id,
+                user.Name,
+            };
+
             if (user == null)
             {
                 return NotFound();
             }
 
-            return Ok(user);
+            return Ok(response);
+        }
+
+        // GET: api/Users/5/cart
+        [HttpGet("{id}/cart")]
+        public async Task<IActionResult> GetUserCart([FromRoute] long id)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var user = await _context.Users
+                .Include(u => u.Cart)
+                .Include(u => u.Cart.CartItems)
+                .SingleOrDefaultAsync(m => m.Id == id);
+
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            var response = user.Cart.CartItems.Select(c => new
+            {
+                c.BeerId,
+                c.Count,
+            });
+
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(response);
         }
 
         // PUT: api/Users/5

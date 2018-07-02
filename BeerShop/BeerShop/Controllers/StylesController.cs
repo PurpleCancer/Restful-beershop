@@ -32,6 +32,7 @@ namespace BeerShop.Controllers
             {
                 s.Id,
                 s.Name,
+                s.OptimalTemperature,
             });
 
             return Ok(response);
@@ -59,6 +60,7 @@ namespace BeerShop.Controllers
             {
                 styleItem.Id,
                 styleItem.Name,
+                styleItem.OptimalTemperature,
                 Beers = styleItem.Beers.Select(b => b.Name),
             };
 
@@ -74,7 +76,8 @@ namespace BeerShop.Controllers
                 return BadRequest(ModelState);
             }
 
-            if (String.IsNullOrEmpty(styleItem.Name))
+            if (String.IsNullOrEmpty(styleItem.Name)
+                || !styleItem.OptimalTemperature.HasValue)
             {
                 return BadRequest();
             }
@@ -85,6 +88,44 @@ namespace BeerShop.Controllers
             }
 
             _context.Entry(styleItem).State = EntityState.Modified;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!StyleItemExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
+        }
+
+        // PATCH: api/Styles/5
+        [HttpPatch("{id}")]
+        public async Task<IActionResult> PatchStyleItem([FromRoute] long id, [FromBody] Style styleItem)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var _style = _context.Styles.Find(id);
+
+            if (_style == null)
+                return NotFound();
+
+            _style.Name = !String.IsNullOrEmpty(styleItem.Name) ? styleItem.Name : _style.Name;
+            _style.OptimalTemperature = styleItem.OptimalTemperature ?? _style.OptimalTemperature;
+
+            _context.Entry(_style).State = EntityState.Modified;
 
             try
             {
@@ -121,6 +162,7 @@ namespace BeerShop.Controllers
             {
                 styleItem.Id,
                 styleItem.Name,
+                styleItem.OptimalTemperature,
             };
 
             return CreatedAtAction("GetStyleItem", new { id = styleItem.Id }, response);
@@ -148,6 +190,7 @@ namespace BeerShop.Controllers
             {
                 styleItem.Id,
                 styleItem.Name,
+                styleItem.OptimalTemperature,
             };
 
             return Ok(response);

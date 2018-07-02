@@ -9,6 +9,7 @@ namespace BeerShop.Models
     {
         public long Id { get; set; }
         public string Name { get; set; }
+        public double? OptimalTemperature { get; set; }
         public List<Beer> Beers { get; set; }
     }
 }
