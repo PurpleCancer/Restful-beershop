@@ -102,12 +102,13 @@ namespace BeerShop.Controllers
                 return BadRequest(ModelState);
             }
 
-            if (id != user.Id)
-            {
+            if (String.IsNullOrEmpty(user.Name))
                 return BadRequest();
-            }
 
-            _context.Entry(user).State = EntityState.Modified;
+            var _user = _context.Users.Find(id);
+            _user.Name = user.Name;
+
+            _context.Entry(_user).State = EntityState.Modified;
 
             try
             {
@@ -133,14 +134,74 @@ namespace BeerShop.Controllers
         public async Task<IActionResult> PostUser([FromBody] User user)
         {
             if (!ModelState.IsValid)
-            {
                 return BadRequest(ModelState);
-            }
 
-            _context.Users.Add(user);
+            if (String.IsNullOrEmpty(user.Name))
+                return BadRequest();
+
+            var cart = new Cart();
+            _context.Carts.Add(cart);
+
+            var newUser = new User { Name = user.Name, CartId = cart.Id };
+            _context.Users.Add(newUser);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetUser", new { id = user.Id }, user);
+            var response = new
+            {
+                newUser.Id,
+                newUser.Name,
+            };
+
+            return CreatedAtAction("GetUser", new { id = newUser.Id }, response);
+        }
+
+        // POST: api/Users/5/cart
+        [HttpPost("{id}/cart")]
+        public async Task<IActionResult> PostCartItem([FromRoute] long id, [FromBody] CartItem cartItem)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            if (!cartItem.BeerId.HasValue || !cartItem.Count.HasValue)
+                return BadRequest();
+
+            var user = await _context.Users
+                .Include(u => u.Cart)
+                .Include(u => u.Cart.CartItems)
+                .SingleOrDefaultAsync(m => m.Id == id);
+            if (user == null)
+                return BadRequest();
+
+            var beer = await _context.Beers.FindAsync(cartItem.BeerId);
+            if (beer.Stock < cartItem.Count)
+                return BadRequest();
+
+            var cItem = user.Cart.CartItems.FirstOrDefault(c => c.BeerId == cartItem.BeerId);
+            if (cItem == null)
+            {
+                var newCartItem = new CartItem
+                {
+                    CartId = user.CartId,
+                    BeerId = cartItem.BeerId,
+                    Count = cartItem.Count,
+                };
+                _context.CartItems.Add(newCartItem);
+            }
+            else
+            {
+                cItem.Count = cartItem.Count;
+                _context.CartItems.Update(cItem);
+            }
+
+            await _context.SaveChangesAsync();
+
+            var response = new
+            {
+                cartItem.BeerId,
+                cartItem.Count
+            };
+
+            return CreatedAtAction("GetUserCart", new { id = user.Id }, response);
         }
 
         // DELETE: api/Users/5
@@ -158,10 +219,20 @@ namespace BeerShop.Controllers
                 return NotFound();
             }
 
+            var response = new
+            {
+                user.Id,
+                user.Name,
+            };
+
+            var cart = await _context.Carts.FindAsync(user.CartId);
+            if (cart != null)
+                _context.Carts.Remove(cart);
+
             _context.Users.Remove(user);
             await _context.SaveChangesAsync();
 
-            return Ok(user);
+            return Ok(response);
         }
 
         private bool UserExists(long id)

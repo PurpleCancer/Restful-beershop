@@ -10,8 +10,8 @@ namespace BeerShop.Models
         public long Id { get; set; }
         public long CartId { get; set; }
         public Cart Cart { get; set; }
-        public long BeerId { get; set; }
+        public long? BeerId { get; set; }
         public Beer Beer { get; set; }
-        public int Count { get; set; }
+        public int? Count { get; set; }
     }
 }
