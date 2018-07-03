@@ -14,28 +14,77 @@ namespace BeerShop.Controllers
     public class StylesController : Controller
     {
         private readonly BeerContext _context;
+        private IUrlHelper _urlHelper;
 
-        public StylesController(BeerContext context)
+        public StylesController(BeerContext context, IUrlHelper helper)
         {
             _context = context;
+            _urlHelper = helper;
         }
 
         // GET: api/Styles
-        [HttpGet]
-        public async Task<IActionResult> GetStyles()
+        [HttpGet(Name = "GetStyles")]
+        public async Task<IActionResult> GetStyles(int page = 1, int pageSize = 5)
         {
             var styles = await _context.Styles
                 .Include(s => s.Beers)
                 .ToArrayAsync();
 
-            var response = styles.Select(s => new
+            if (styles.Count() < pageSize * (page - 1))
+                return NotFound();
+
+            var pagedStyles = styles.Skip((page - 1) * pageSize).Take(pageSize);
+
+            var totalPages = Math.Ceiling(((float)styles.Count()) / pageSize);
+
+            var paging = new
+            {
+                TotalItems = styles.Count(),
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = totalPages,
+            };
+
+            var links = new List<Link>
+            {
+                new Link
+                {
+                    Href = _urlHelper.Link("GetStyles", new { page, pageSize }),
+                    Rel = "self",
+                    Method = "GET",
+                }
+            };
+            if (page > 1)
+                links.Add(new Link
+                {
+                    Href = _urlHelper.Link("GetStyles", new { page = page - 1, pageSize }),
+                    Rel = "prevPage",
+                    Method = "GET",
+                });
+
+            if (page < totalPages)
+                links.Add(new Link
+                {
+                    Href = _urlHelper.Link("GetStyles", new { page = page + 1, pageSize }),
+                    Rel = "nextPage",
+                    Method = "GET",
+                });
+
+            var items = pagedStyles.Select(s => new
             {
                 s.Id,
                 s.Name,
                 s.OptimalTemperature,
             });
 
-            return Ok(response);
+            var result = new
+            {
+                Paging = paging,
+                Links = links,
+                Items = items,
+            };
+
+            return Ok(result);
         }
 
         // GET: api/Styles/5

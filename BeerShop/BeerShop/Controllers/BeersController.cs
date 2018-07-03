@@ -14,20 +14,62 @@ namespace BeerShop.Controllers
     public class BeersController : ControllerBase
     {
         private readonly BeerContext _context;
+        private IUrlHelper _urlHelper;
 
-        public BeersController(BeerContext context)
+        public BeersController(BeerContext context, IUrlHelper helper)
         {
             _context = context;
+            _urlHelper = helper;
         }
 
         // GET: api/Beers
-        [HttpGet]
-        public async Task<IActionResult> GetBeer()
+        [HttpGet(Name = "GetBeers")]
+        public async Task<IActionResult> GetBeer(int page = 1, int pageSize = 5)
         {
             var beers = await _context.Beers
                 .ToArrayAsync();
 
-            var response = beers.Select(b => new
+            if (beers.Count() < pageSize * (page - 1))
+                return NotFound();
+
+            var pagedStyles = beers.Skip((page - 1) * pageSize).Take(pageSize);
+
+            var totalPages = Math.Ceiling(((float)beers.Count()) / pageSize);
+
+            var paging = new
+            {
+                TotalItems = beers.Count(),
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = totalPages,
+            };
+
+            var links = new List<Link>
+            {
+                new Link
+                {
+                    Href = _urlHelper.Link("GetBeers", new { page, pageSize }),
+                    Rel = "self",
+                    Method = "GET",
+                }
+            };
+            if (page > 1)
+                links.Add(new Link
+                {
+                    Href = _urlHelper.Link("GetBeers", new { page = page - 1, pageSize }),
+                    Rel = "prevPage",
+                    Method = "GET",
+                });
+
+            if (page < totalPages)
+                links.Add(new Link
+                {
+                    Href = _urlHelper.Link("GetBeers", new { page = page + 1, pageSize }),
+                    Rel = "nextPage",
+                    Method = "GET",
+                });
+
+            var items = pagedStyles.Select(b => new
             {
                 b.Id,
                 b.StyleId,
@@ -36,7 +78,14 @@ namespace BeerShop.Controllers
                 b.Stock,
             });
 
-            return Ok(response);
+            var result = new
+            {
+                Paging = paging,
+                Links = links,
+                Items = items,
+            };
+
+            return Ok(result);
         }
 
         // GET: api/Beers/5

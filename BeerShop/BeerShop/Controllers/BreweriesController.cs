@@ -14,27 +14,76 @@ namespace BeerShop.Controllers
     public class BreweriesController : ControllerBase
     {
         private readonly BeerContext _context;
+        private IUrlHelper _urlHelper;
 
-        public BreweriesController(BeerContext context)
+        public BreweriesController(BeerContext context, IUrlHelper helper)
         {
             _context = context;
+            _urlHelper = helper;
         }
 
         // GET: api/Breweries
-        [HttpGet]
-        public async Task<IActionResult> GetBrewery()
+        [HttpGet(Name = "GetBreweries")]
+        public async Task<IActionResult> GetBrewery(int page = 1, int pageSize = 5)
         {
             var breweries = await _context.Breweries
                 .ToArrayAsync();
 
-            var response = breweries.Select(b => new
+            if (breweries.Count() < pageSize * (page - 1))
+                return NotFound();
+
+            var pagedStyles = breweries.Skip((page - 1) * pageSize).Take(pageSize);
+
+            var totalPages = Math.Ceiling(((float)breweries.Count()) / pageSize);
+
+            var paging = new
+            {
+                TotalItems = breweries.Count(),
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = totalPages,
+            };
+
+            var links = new List<Link>
+            {
+                new Link
+                {
+                    Href = _urlHelper.Link("GetBreweries", new { page, pageSize }),
+                    Rel = "self",
+                    Method = "GET",
+                }
+            };
+            if (page > 1)
+                links.Add(new Link
+                {
+                    Href = _urlHelper.Link("GetBreweries", new { page = page - 1, pageSize }),
+                    Rel = "prevPage",
+                    Method = "GET",
+                });
+
+            if (page < totalPages)
+                links.Add(new Link
+                {
+                    Href = _urlHelper.Link("GetBreweries", new { page = page + 1, pageSize }),
+                    Rel = "nextPage",
+                    Method = "GET",
+                });
+
+            var items = pagedStyles.Select(b => new
             {
                 b.Id,
                 b.Name,
                 b.Country,
             });
 
-            return Ok(Response);
+            var result = new
+            {
+                Paging = paging,
+                Links = links,
+                Items = items,
+            };
+
+            return Ok(result);
         }
 
         // GET: api/Breweries/5
