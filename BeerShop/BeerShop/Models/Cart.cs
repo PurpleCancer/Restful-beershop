@@ -8,6 +8,12 @@ namespace BeerShop.Models
     public class Cart
     {
         public long Id { get; set; }
+        public long OrderId { get; set; }
         public List<CartItem> CartItems { get; set; }
+
+        public Cart()
+        {
+            OrderId = 0;
+        }
     }
 }

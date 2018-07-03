@@ -132,16 +132,23 @@ namespace BeerShop.Controllers
                 return NotFound();
             }
 
-            var response = user.Cart.CartItems.Select(c => new
+            var items = user.Cart.CartItems.Select(c => new
             {
                 c.BeerId,
                 c.Count,
             });
 
-            if (user == null)
+            var response = new
             {
-                return NotFound();
-            }
+                OrderLink = user.Cart.CartItems.Count > 0 ? new Link
+                {
+                    Href = _urlHelper.Link("PostOrder", new { id, user.Cart.OrderId }),
+                    Rel = "order",
+                    Method = "POST",
+                } : null,
+
+                Items = items,
+            };
 
             return Ok(response);
         }
@@ -312,6 +319,12 @@ namespace BeerShop.Controllers
             };
 
             return CreatedAtAction("GetUserCart", new { id = user.Id }, response);
+        }
+
+        [HttpPost("{id}/order/{orderId}", Name = "PostOrder")]
+        public async Task<IActionResult> PostOrder([FromRoute] long id, [FromRoute] long orderId)
+        {
+            return BadRequest();
         }
 
         // DELETE: api/Users/5
