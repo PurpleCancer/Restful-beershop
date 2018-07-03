@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using BeerShop.Models;
 using Microsoft.AspNetCore.Builder;
@@ -51,32 +52,20 @@ namespace BeerShop
             {
                 var context = serviceScope.ServiceProvider.GetService<BeerContext>();
 
-                var ipa = new Style { Name = "IPA", OptimalTemperature = 1.8 };
+                var ipa = new Style { Name = "IPA", OptimalTemperature = 1.8, ResourceVersion = 0 };
                 context.Styles.Add(ipa);
-                var ipa1 = new Style { Name = "IPA1", OptimalTemperature = 1.8 };
-                context.Styles.Add(ipa1);
-                var ipa2 = new Style { Name = "IPA2", OptimalTemperature = 1.8 };
-                context.Styles.Add(ipa2);
-                var ipa3 = new Style { Name = "IPA3", OptimalTemperature = 1.8 };
-                context.Styles.Add(ipa3);
-                var ipa4 = new Style { Name = "IPA4", OptimalTemperature = 1.8 };
-                context.Styles.Add(ipa4);
-                var ipa5 = new Style { Name = "IPA5", OptimalTemperature = 1.8 };
-                context.Styles.Add(ipa5);
-                var ipa6 = new Style { Name = "IPA6", OptimalTemperature = 1.8 };
-                context.Styles.Add(ipa6);
 
-                var pinta = new Brewery { Name = "Pinta", Country = "Poland" };
+                var pinta = new Brewery { Name = "Pinta", Country = "Poland", ResourceVersion = 0 };
                 context.Breweries.Add(pinta);
 
-                var atakChmielu = new Beer { StyleId = ipa.Id, BreweryId = pinta.Id, Name = "Atak chmielu", Stock = 4 };
+                var atakChmielu = new Beer { StyleId = ipa.Id, BreweryId = pinta.Id, Name = "Atak chmielu", Stock = 4, ResourceVersion = 0 };
                 context.Beers.Add(atakChmielu);
                 
                 var user1Cart = new Cart();
                 context.Carts.Add(user1Cart);
                 var cartItem1 = new CartItem { CartId = user1Cart.Id, BeerId = atakChmielu.Id, Count = 2 };
                 context.CartItems.Add(cartItem1);
-                var user1 = new User { Name = "Jan", CartId = user1Cart.Id };
+                var user1 = new User { Name = "Jan", CartId = user1Cart.Id,  ResourceVersion = 0 };
                 context.Users.Add(user1);
 
                 context.SaveChanges();

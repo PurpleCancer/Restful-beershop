@@ -88,7 +88,7 @@ namespace BeerShop.Controllers
         }
 
         // GET: api/Styles/5
-        [HttpGet("{id}")]
+        [HttpGet("{id}", Name = "GetStyle")]
         public async Task<IActionResult> GetStyleItem([FromRoute] long id)
         {
             if (!ModelState.IsValid)
@@ -99,6 +99,8 @@ namespace BeerShop.Controllers
             var styleItem = await _context.Styles
                 .Include(s => s.Beers)
                 .SingleOrDefaultAsync(m => m.Id == id);
+
+            var t = _context.Entry(styleItem).Property(x => x.ResourceVersion);
 
             if (styleItem == null)
             {
@@ -111,6 +113,7 @@ namespace BeerShop.Controllers
                 styleItem.Name,
                 styleItem.OptimalTemperature,
                 Beers = styleItem.Beers.Select(b => b.Name),
+                styleItem.ResourceVersion,
             };
 
             return Ok(response);
@@ -126,7 +129,8 @@ namespace BeerShop.Controllers
             }
 
             if (String.IsNullOrEmpty(styleItem.Name)
-                || !styleItem.OptimalTemperature.HasValue)
+                || !styleItem.OptimalTemperature.HasValue
+                || !styleItem.ResourceVersion.HasValue)
             {
                 return BadRequest();
             }
@@ -135,7 +139,6 @@ namespace BeerShop.Controllers
             {
                 styleItem.Id = id;
             }
-
             _context.Entry(styleItem).State = EntityState.Modified;
 
             try
@@ -150,8 +153,19 @@ namespace BeerShop.Controllers
                 }
                 else
                 {
-                    throw;
+                    return Redirect(_urlHelper.Link("GetStyle", new { id }));
                 }
+            }
+
+            styleItem.ResourceVersion++;
+            _context.Entry(styleItem).State = EntityState.Modified;
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                throw;
             }
 
             return NoContent();
@@ -204,6 +218,7 @@ namespace BeerShop.Controllers
                 return BadRequest(ModelState);
             }
 
+            styleItem.ResourceVersion = 0;
             _context.Styles.Add(styleItem);
             await _context.SaveChangesAsync();
 

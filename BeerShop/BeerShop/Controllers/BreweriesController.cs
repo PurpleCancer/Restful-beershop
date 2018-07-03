@@ -87,7 +87,7 @@ namespace BeerShop.Controllers
         }
 
         // GET: api/Breweries/5
-        [HttpGet("{id}")]
+        [HttpGet("{id}", Name = "GetBrewery")]
         public async Task<IActionResult> GetBrewery([FromRoute] long id)
         {
             if (!ModelState.IsValid)
@@ -110,6 +110,7 @@ namespace BeerShop.Controllers
                 brewery.Name,
                 brewery.Country,
                 Beers = brewery.Beers.Select(b => b.Name),
+                brewery.ResourceVersion,
             };
 
             return Ok(response);
@@ -125,7 +126,8 @@ namespace BeerShop.Controllers
             }
 
             if (String.IsNullOrEmpty(brewery.Name)
-                || String.IsNullOrEmpty(brewery.Country))
+                || String.IsNullOrEmpty(brewery.Country)
+                || !brewery.ResourceVersion.HasValue)
             {
                 return BadRequest();
             }
@@ -149,8 +151,19 @@ namespace BeerShop.Controllers
                 }
                 else
                 {
-                    throw;
+                    return Redirect(_urlHelper.Link("GetBrewery", new { id }));
                 }
+            }
+
+            brewery.ResourceVersion++;
+            _context.Entry(brewery).State = EntityState.Modified;
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                throw;
             }
 
             return NoContent();
@@ -203,6 +216,7 @@ namespace BeerShop.Controllers
                 return BadRequest(ModelState);
             }
 
+            brewery.ResourceVersion = 0;
             _context.Breweries.Add(brewery);
             await _context.SaveChangesAsync();
 

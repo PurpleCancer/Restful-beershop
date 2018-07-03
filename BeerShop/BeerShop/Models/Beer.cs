@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -17,5 +18,8 @@ namespace BeerShop.Models
 
         public string Picture { get; set; }
         public int? Stock { get; set; }
+
+        [ConcurrencyCheck]
+        public int? ResourceVersion { get; set; }
     }
 }

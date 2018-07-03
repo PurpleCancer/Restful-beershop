@@ -85,7 +85,7 @@ namespace BeerShop.Controllers
         }
 
         // GET: api/Users/5
-        [HttpGet("{id}")]
+        [HttpGet("{id}", Name = "GetUser")]
         public async Task<IActionResult> GetUser([FromRoute] long id)
         {
             if (!ModelState.IsValid)
@@ -102,6 +102,7 @@ namespace BeerShop.Controllers
                 user.Id,
                 user.Name,
                 Favorites = user.Favorites.Select(f => f.BeerId),
+                user.ResourceVersion,
             };
 
             if (user == null)
@@ -154,13 +155,18 @@ namespace BeerShop.Controllers
                 return BadRequest(ModelState);
             }
 
-            if (String.IsNullOrEmpty(user.Name))
+            if (String.IsNullOrEmpty(user.Name)
+                || !user.ResourceVersion.HasValue)
                 return BadRequest();
 
             var _user = _context.Users.Find(id);
-            _user.Name = user.Name;
+            user.Id = id;
+            user.CartId = _user.CartId;
+            user.Cart = _user.Cart;
+            user.Favorites = _user.Favorites;
 
-            _context.Entry(_user).State = EntityState.Modified;
+            _context.Entry(_user).State = EntityState.Detached;
+            _context.Entry(user).State = EntityState.Modified;
 
             try
             {
@@ -174,8 +180,19 @@ namespace BeerShop.Controllers
                 }
                 else
                 {
-                    throw;
+                    return Redirect(_urlHelper.Link("GetUser", new { id }));
                 }
+            }
+
+            user.ResourceVersion++;
+            _context.Entry(user).State = EntityState.Modified;
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                throw;
             }
 
             return NoContent();
@@ -194,7 +211,7 @@ namespace BeerShop.Controllers
             var cart = new Cart();
             _context.Carts.Add(cart);
 
-            var newUser = new User { Name = user.Name, CartId = cart.Id };
+            var newUser = new User { Name = user.Name, CartId = cart.Id, ResourceVersion = 0 };
             _context.Users.Add(newUser);
             await _context.SaveChangesAsync();
 
