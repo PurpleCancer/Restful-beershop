@@ -93,12 +93,15 @@ namespace BeerShop.Controllers
                 return BadRequest(ModelState);
             }
 
-            var user = await _context.Users.FindAsync(id);
+            var user = await _context.Users
+                .Include(u => u.Favorites)
+                .SingleOrDefaultAsync(m => m.Id == id);
 
             var response = new
             {
                 user.Id,
                 user.Name,
+                Favorites = user.Favorites.Select(f => f.BeerId),
             };
 
             if (user == null)
@@ -253,6 +256,47 @@ namespace BeerShop.Controllers
             return CreatedAtAction("GetUserCart", new { id = user.Id }, response);
         }
 
+        // POST: api/Users/5/favorites
+        [HttpPost("{id}/favorites")]
+        public async Task<IActionResult> PostFavorite([FromRoute] long id, [FromBody] Favorite favorite)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            if (!favorite.BeerId.HasValue)
+                return BadRequest();
+
+            var user = await _context.Users
+                .Include(u => u.Favorites)
+                .SingleOrDefaultAsync(m => m.Id == id);
+            if (user == null)
+                return BadRequest();
+
+            var beer = await _context.Users
+                .SingleOrDefaultAsync(m => m.Id == favorite.BeerId);
+            if (beer == null)
+                return BadRequest();
+
+            var newFavorite = new Favorite
+            {
+                UserId = id,
+                BeerId = favorite.BeerId,
+            };
+
+            if (!user.Favorites.Any(f => f.BeerId == favorite.BeerId))
+            {
+                user.Favorites.Add(newFavorite);
+                await _context.SaveChangesAsync();
+            }
+
+            var response = new
+            {
+                newFavorite.BeerId,
+            };
+
+            return CreatedAtAction("GetUserCart", new { id = user.Id }, response);
+        }
+
         // DELETE: api/Users/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser([FromRoute] long id)
@@ -284,7 +328,7 @@ namespace BeerShop.Controllers
             return Ok(response);
         }
 
-        // DELETE: api/Users/5/cart
+        // DELETE: api/Users/5/cart/1
         [HttpDelete("{id}/cart/{beerId}")]
         public async Task<IActionResult> DeleteUserCartItem([FromRoute] long id, [FromRoute] long beerId)
         {
@@ -310,6 +354,34 @@ namespace BeerShop.Controllers
             {
                 cartItem.BeerId,
                 cartItem.Count,
+            };
+
+            return Ok(response);
+        }
+
+        // DELETE: api/Users/5/favorites/1
+        [HttpDelete("{id}/favorites/{beerId}")]
+        public async Task<IActionResult> DeleteUserFavorite([FromRoute] long id, [FromRoute] long beerId)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var user = await _context.Users
+                .Include(u => u.Favorites)
+                .SingleOrDefaultAsync(m => m.Id == id);
+            if (user == null)
+                return BadRequest();
+
+            var favoriteToDelete = user.Favorites.FirstOrDefault(f => f.BeerId == beerId);
+            if (favoriteToDelete == null)
+                return NotFound();
+
+            user.Favorites.Remove(favoriteToDelete);
+            await _context.SaveChangesAsync();
+
+            var response = new
+            {
+                favoriteToDelete.BeerId,
             };
 
             return Ok(response);

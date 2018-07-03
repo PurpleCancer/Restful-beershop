@@ -12,5 +12,6 @@ namespace BeerShop.Models
 
         public long CartId { get; set; }
         public Cart Cart { get; set; }
+        public List<Favorite> Favorites { get; set; }
     }
 }
