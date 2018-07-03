@@ -100,8 +100,6 @@ namespace BeerShop.Controllers
                 .Include(s => s.Beers)
                 .SingleOrDefaultAsync(m => m.Id == id);
 
-            var t = _context.Entry(styleItem).Property(x => x.ResourceVersion);
-
             if (styleItem == null)
             {
                 return NotFound();

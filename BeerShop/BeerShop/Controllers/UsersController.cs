@@ -97,6 +97,11 @@ namespace BeerShop.Controllers
                 .Include(u => u.Favorites)
                 .SingleOrDefaultAsync(m => m.Id == id);
 
+            if (user == null)
+            {
+                return NotFound();
+            }
+
             var response = new
             {
                 user.Id,
@@ -104,11 +109,6 @@ namespace BeerShop.Controllers
                 Favorites = user.Favorites.Select(f => f.BeerId),
                 user.ResourceVersion,
             };
-
-            if (user == null)
-            {
-                return NotFound();
-            }
 
             return Ok(response);
         }
@@ -153,6 +153,31 @@ namespace BeerShop.Controllers
             return Ok(response);
         }
 
+
+
+        // GET: api/Users/5/cart
+        [HttpGet("{id}/favorites")]
+        public async Task<IActionResult> GetFavorites([FromRoute] long id)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var user = await _context.Users
+                .Include(u => u.Favorites)
+                .SingleOrDefaultAsync(m => m.Id == id);
+
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            var response = user.Favorites.Select(f => f.BeerId);
+
+            return Ok(response);
+        }
+
         // PUT: api/Users/5
         [HttpPut("{id}")]
         public async Task<IActionResult> PutUser([FromRoute] long id, [FromBody] User user)
@@ -167,6 +192,9 @@ namespace BeerShop.Controllers
                 return BadRequest();
 
             var _user = _context.Users.Find(id);
+            if (_user == null)
+                return NotFound();
+
             user.Id = id;
             user.CartId = _user.CartId;
             user.Cart = _user.Cart;
@@ -246,7 +274,7 @@ namespace BeerShop.Controllers
                 .Include(u => u.Cart.CartItems)
                 .SingleOrDefaultAsync(m => m.Id == id);
             if (user == null)
-                return BadRequest();
+                return NotFound();
 
             var beer = await _context.Beers.FindAsync(cartItem.BeerId);
             if (beer.Stock < cartItem.Count)
@@ -294,7 +322,7 @@ namespace BeerShop.Controllers
                 .Include(u => u.Favorites)
                 .SingleOrDefaultAsync(m => m.Id == id);
             if (user == null)
-                return BadRequest();
+                return NotFound();
 
             var beer = await _context.Users
                 .SingleOrDefaultAsync(m => m.Id == favorite.BeerId);
