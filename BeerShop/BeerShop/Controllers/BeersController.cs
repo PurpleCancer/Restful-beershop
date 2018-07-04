@@ -144,7 +144,8 @@ namespace BeerShop.Controllers
                     || !beer.StyleId.HasValue
                     || !beer.BreweryId.HasValue
                     || !beer.Stock.HasValue
-                    || !beer.ResourceVersion.HasValue)
+                    || !beer.ResourceVersion.HasValue
+                    || beer.Stock.Value < 0)
                 {
                     return BadRequest();
                 }
@@ -197,6 +198,9 @@ namespace BeerShop.Controllers
                 {
                     return BadRequest(ModelState);
                 }
+
+                if (beer.Stock.HasValue && beer.Stock.Value < 0)
+                    return BadRequest();
 
                 if (id != beer.Id)
                 {
