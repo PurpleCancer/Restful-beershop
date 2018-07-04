@@ -131,159 +131,171 @@ namespace BeerShop.Controllers
 
         // PUT: api/Beers/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutBeer([FromRoute] long id, [FromBody] Beer beer)
+        public IActionResult PutBeer([FromRoute] long id, [FromBody] Beer beer)
         {
-            if (!ModelState.IsValid)
+            lock (Locks.orderLock)
             {
-                return BadRequest(ModelState);
-            }
-
-            if (String.IsNullOrEmpty(beer.Name)
-                || !beer.StyleId.HasValue
-                || !beer.BreweryId.HasValue
-                || !beer.Stock.HasValue
-                || !beer.ResourceVersion.HasValue)
-            {
-                return BadRequest();
-            }
-
-            if (id != beer.Id)
-            {
-                beer.Id = id;
-            }
-
-            _context.Entry(beer).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!BeerExists(id))
+                if (!ModelState.IsValid)
                 {
-                    return NotFound();
+                    return BadRequest(ModelState);
                 }
-                else
+
+                if (String.IsNullOrEmpty(beer.Name)
+                    || !beer.StyleId.HasValue
+                    || !beer.BreweryId.HasValue
+                    || !beer.Stock.HasValue
+                    || !beer.ResourceVersion.HasValue)
                 {
-                    return Redirect(_urlHelper.Link("GetBeer", new { id }));
+                    return BadRequest();
                 }
-            }
 
-            beer.ResourceVersion++;
-            _context.Entry(beer).State = EntityState.Modified;
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                throw;
-            }
+                if (id != beer.Id)
+                {
+                    beer.Id = id;
+                }
 
-            return NoContent();
+                _context.Entry(beer).State = EntityState.Modified;
+
+                try
+                {
+                    _context.SaveChanges();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!BeerExists(id))
+                    {
+                        return NotFound();
+                    }
+                    else
+                    {
+                        return Conflict();
+                    }
+                }
+
+                beer.ResourceVersion++;
+                _context.Entry(beer).State = EntityState.Modified;
+                try
+                {
+                    _context.SaveChanges();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    throw;
+                }
+
+                return NoContent();
+            }
         }
 
         // PATCH: api/Beers/5
         [HttpPatch("{id}")]
-        public async Task<IActionResult> PatchBeer([FromRoute] long id, [FromBody] Beer beer)
+        public IActionResult PatchBeer([FromRoute] long id, [FromBody] Beer beer)
         {
-            if (!ModelState.IsValid)
+            lock (Locks.orderLock)
             {
-                return BadRequest(ModelState);
-            }
-
-            if (id != beer.Id)
-            {
-                beer.Id = id;
-            }
-
-            var _beer = _context.Beers.Find(id);
-
-            if (_beer == null)
-                return NotFound();
-
-            _beer.Name = !String.IsNullOrEmpty(beer.Name) ? beer.Name : _beer.Name;
-            _beer.StyleId = beer.StyleId ?? _beer.StyleId;
-            _beer.BreweryId = beer.BreweryId ?? _beer.BreweryId;
-            _beer.Picture = !String.IsNullOrEmpty(beer.Picture) ? beer.Picture : _beer.Picture;
-            _beer.Stock = beer.Stock ?? _beer.Stock;
-
-            _context.Entry(_beer).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!BeerExists(id))
+                if (!ModelState.IsValid)
                 {
+                    return BadRequest(ModelState);
+                }
+
+                if (id != beer.Id)
+                {
+                    beer.Id = id;
+                }
+
+                var _beer = _context.Beers.Find(id);
+
+                if (_beer == null)
                     return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
 
-            return NoContent();
+                _beer.Name = !String.IsNullOrEmpty(beer.Name) ? beer.Name : _beer.Name;
+                _beer.StyleId = beer.StyleId ?? _beer.StyleId;
+                _beer.BreweryId = beer.BreweryId ?? _beer.BreweryId;
+                _beer.Picture = !String.IsNullOrEmpty(beer.Picture) ? beer.Picture : _beer.Picture;
+                _beer.Stock = beer.Stock ?? _beer.Stock;
+
+                _context.Entry(_beer).State = EntityState.Modified;
+
+                try
+                {
+                    _context.SaveChanges();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!BeerExists(id))
+                    {
+                        return NotFound();
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+
+                return NoContent();
+            }
         }
 
         // POST: api/Beers
         [HttpPost]
-        public async Task<IActionResult> PostBeer([FromBody] Beer beer)
+        public IActionResult PostBeer([FromBody] Beer beer)
         {
-            if (!ModelState.IsValid)
+            lock (Locks.orderLock)
             {
-                return BadRequest(ModelState);
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                beer.ResourceVersion = 0;
+                _context.Beers.Add(beer);
+                _context.SaveChanges();
+
+                var response = new
+                {
+                    beer.Id,
+                    beer.StyleId,
+                    beer.BreweryId,
+                    beer.Picture,
+                    beer.Stock,
+                };
+
+                return CreatedAtAction("GetBeer", new { id = beer.Id }, response);
             }
-
-            beer.ResourceVersion = 0;
-            _context.Beers.Add(beer);
-            await _context.SaveChangesAsync();
-
-            var response = new
-            {
-                beer.Id,
-                beer.StyleId,
-                beer.BreweryId,
-                beer.Picture,
-                beer.Stock,
-            };
-
-            return CreatedAtAction("GetBeer", new { id = beer.Id }, response);
         }
 
         // DELETE: api/Beers/5
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteBeer([FromRoute] long id)
+        public IActionResult DeleteBeer([FromRoute] long id)
         {
-            if (!ModelState.IsValid)
+            lock (Locks.orderLock)
             {
-                return BadRequest(ModelState);
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                var beer = _context.Beers.Find(id);
+
+                if (beer == null)
+                {
+                    return NotFound();
+                }
+
+                _context.Beers.Remove(beer);
+                _context.SaveChanges();
+
+                var response = new
+                {
+                    beer.Id,
+                    beer.StyleId,
+                    beer.BreweryId,
+                    beer.Picture,
+                    beer.Stock,
+                };
+
+                return Ok(response);
             }
-
-            var beer = await _context.Beers.FindAsync(id);
-
-            if (beer == null)
-            {
-                return NotFound();
-            }
-
-            _context.Beers.Remove(beer);
-            await _context.SaveChangesAsync();
-
-            var response = new
-            {
-                beer.Id,
-                beer.StyleId,
-                beer.BreweryId,
-                beer.Picture,
-                beer.Stock,
-            };
-
-            return Ok(response);
         }
 
         private bool BeerExists(long id)

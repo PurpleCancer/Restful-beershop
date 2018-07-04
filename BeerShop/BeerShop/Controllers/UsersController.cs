@@ -153,9 +153,7 @@ namespace BeerShop.Controllers
             return Ok(response);
         }
 
-
-
-        // GET: api/Users/5/cart
+        // GET: api/Users/5/favorites
         [HttpGet("{id}/favorites")]
         public async Task<IActionResult> GetFavorites([FromRoute] long id)
         {
@@ -215,7 +213,7 @@ namespace BeerShop.Controllers
                 }
                 else
                 {
-                    return Redirect(_urlHelper.Link("GetUser", new { id }));
+                    return Conflict();
                 }
             }
 
@@ -350,9 +348,52 @@ namespace BeerShop.Controllers
         }
 
         [HttpPost("{id}/order/{orderId}", Name = "PostOrder")]
-        public async Task<IActionResult> PostOrder([FromRoute] long id, [FromRoute] long orderId)
+        public IActionResult PostOrder([FromRoute] long id, [FromRoute] long orderId)
         {
-            return BadRequest();
+            lock (Locks.orderLock)
+            {
+                var user = _context.Users
+                    .Include(u => u.Cart)
+                    .Include(u => u.Cart.CartItems)
+                    .SingleOrDefault(m => m.Id == id);
+
+                if (user == null
+                    || !user.Cart.CartItems.Any())
+                    return NotFound();
+
+                var cartBeerIds = user.Cart.CartItems.Select(c => c.BeerId);
+                var beers = _context.Beers.Where(b => cartBeerIds.Contains(b.Id));
+                bool correctOrder;
+
+                try
+                {
+                    correctOrder = orderId == user.Cart.OrderId
+                        && user.Cart.CartItems.All(c =>
+                            beers.First(b => b.Id == c.BeerId).Stock >= c.Count);
+                }
+                catch(InvalidOperationException)
+                {
+                    return Conflict();
+                }
+
+                if (!correctOrder)
+                    return Conflict();
+
+                foreach(var cartItem in user.Cart.CartItems)
+                {
+                    var beer = beers.First(b => b.Id == cartItem.BeerId);
+                    beer.Stock -= cartItem.Count;
+                    _context.Entry(beer).State = EntityState.Modified;
+                    _context.Entry(cartItem).State = EntityState.Deleted;
+                }
+
+                user.Cart.OrderId++;
+                _context.Entry(user.Cart).State = EntityState.Modified;
+
+                _context.SaveChanges();
+
+                return NoContent();
+            }
         }
 
         // DELETE: api/Users/5

@@ -151,7 +151,7 @@ namespace BeerShop.Controllers
                 }
                 else
                 {
-                    return Redirect(_urlHelper.Link("GetBrewery", new { id }));
+                    return Conflict();
                 }
             }
 
