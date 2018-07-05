@@ -322,7 +322,7 @@ namespace BeerShop.Controllers
             if (user == null)
                 return NotFound();
 
-            var beer = await _context.Users
+            var beer = await _context.Beers
                 .SingleOrDefaultAsync(m => m.Id == favorite.BeerId);
             if (beer == null)
                 return BadRequest();
